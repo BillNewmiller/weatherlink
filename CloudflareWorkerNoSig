@@ -1,0 +1,145 @@
+/*
+A modification of a worker created by Jeremy Wall to demo how
+one may send a request to WeatherLink v2 API. Jeremy's original 
+comments for the code are shown below. The changes I made to the 
+code were to delete parts that created the signature orginally
+required by the API and to add the creation of a header to pass
+the Api Secret.
+/*
+A demo for getting current conditions from the WeatherLink v2 API
+Look out for the TODO comments below on what places need to
+be changed to support other types of WeatherLink v2 API calls
+This code uses a mix of code from:
+https://developers.cloudflare.com/workers/examples/fetch-json
+https://developers.cloudflare.com/workers/examples/signing-requests
+https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/sign
+https://bitcoin.stackexchange.com/questions/52727/byte-array-to-hexadecimal-and-back-again-in-javascript
+Further docs for cloudflare workers is at https://developers.cloudflare.com/workers/
+*/
+
+// Constants for the demo
+/*
+TODO: change to your API Key and API Secret
+*/
+const apiKey = "YOUR-API-KEY";
+const apiSecret = "YOUR-API-SECRET";
+/*
+TODO: change the URL to whatever API call you are making
+*/
+const apiUrl = "https://api.weatherlink.com/v2/current";
+/*
+TODO: change the stationId as needed
+*/
+const stationId = 'DESIRED-STATION-ID';
+
+// reads the response from the WeatherLink v2 API
+async function gatherResponse(response) {
+  const { headers } = response;
+  const contentType = headers.get("content-type") || "";
+  
+  if (contentType.includes("application/json")) {
+    return JSON.stringify(await response.json());
+  } else if (contentType.includes("application/text")) {
+    return await response.text();
+  } else if (contentType.includes("text/html")) {
+    return await response.text();
+  } else {
+    return await response.text();
+  }
+}
+
+// processes the incoming request to the cloudflare worker
+async function handleRequest(request) {
+  // used in the request to the WeatherLink v2 API
+  const requestInit = {
+    headers: {
+
+    }
+  };
+
+  // used in the response that this Cloudflare worker sends back,
+  // you need to use the Access-Control-Allow-Origin header to allow
+  // this cloudflare worker to be invoked by ajax from another domain
+  const responseInit = {
+    headers: {
+      "content-type": "application/json;charset=UTF-8",
+      "Access-Control-Allow-Origin": "*",
+      "X-Api-Secret": apiSecret
+    }
+  };
+
+  /*
+  TODO: update this for whatever parameters are needed for 
+  the WeatherLink v2 API call you are trying to make
+  */
+  let parameters = {
+    "api-key": apiKey,
+  //  "station-id": stationId,
+    "t": Math.floor(Date.now() / 1000)
+  };
+
+  // sort the parameter names
+ // let parameterNamesSorted = [];
+ // for (let parameterName in parameters) {
+ //   parameterNamesSorted.push(parameterName);
+ // }
+ // parameterNamesSorted.sort();
+
+  // generate the string to hash in the API signature
+ // let stringToHash = "";
+ // for (let parameterName of parameterNamesSorted) {
+ //   stringToHash = stringToHash + parameterName + parameters[parameterName];
+ // }
+
+  // get the bytes for the API Secret and string to hash
+ // const apiSecretBytes = new TextEncoder("utf-8").encode(apiSecret);
+ // const stringToHashBytes = new TextEncoder("utf-8").encode(stringToHash);
+
+  // create the signing key
+//  const cryptoKey = await crypto.subtle.importKey(
+ //   'raw',
+//    apiSecretBytes,
+ //   { name: 'HMAC', hash: 'SHA-256' },
+//    true,
+ //   ['sign']
+ // );
+
+  // sign the string to hash and convert to a lower case hex string
+//  const apiSignature = toHexString(new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, stringToHashBytes)));
+  
+  /*
+  TODO: update the finalUrl to contain whatever parameters are needed for 
+  the WeatherLink v2 API call you are trying to make
+  */
+  var headers = new Headers();
+  headers.append('X-Api-Secret', apiSecret);
+ 
+
+  const finalUrl = apiUrl + "/" + stationId +
+    "?api-key=" + apiKey;// + 
+  //  "&api-signature=" + apiSignature +
+  //  "&t=" + parameters["t"];
+  var request = new Request(finalUrl, { headers: headers });
+  
+
+  console.log(finalUrl);
+
+  // make the WeatherLink v2 API call
+  const response = await fetch(request);
+  // get the response body
+  const results = await gatherResponse(response);
+  // return the response from the WeatherLink v2 API
+  return new Response(results, responseInit);
+}
+
+// a function to turn a byte array to a lower case hex string
+function toHexString(byteArray) {
+  return Array.prototype.map.call(byteArray, function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('').toLowerCase();
+}
+
+// cloudflare worker event listener
+addEventListener('fetch', event => {
+  return event.respondWith(handleRequest(event.request));
+});
