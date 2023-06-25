@@ -1,0 +1,3 @@
+:Replace ENDPOINT with an endpoint available at https://weatherlink.github.io/v2-api/api-reference.
+:Likewise, insert your api key and api secret as indicated below
+curl https://api.weatherlink.com/v2/ENDPOIN?api-key=YOUR_API_KEY -H "X-Api-Secret: YOUR_API_SECRET"
