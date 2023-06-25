@@ -1,0 +1,17 @@
+
+
+protected async void  Button1_ClickAsync(object sender, EventArgs e)
+        {
+            /Replace DESIREDENDPOINT, YOURAPIKEY, and YOURAPIKEY as appropriate
+
+            HttpClient client = new HttpClient();
+
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, "https://api.weatherlink.com/v2/DESIREDENDPOINT?api-key=YOURAPIKEY);
+
+            request.Headers.Add("X-Api-Secret", "YOURAPISECRET");
+
+            HttpResponseMessage response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            Label1.Text = await response.Content.ReadAsStringAsync();
+            
+        }
